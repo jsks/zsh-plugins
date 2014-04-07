@@ -3,30 +3,38 @@ function zerve {
         ("stop")
             __zerve:cleanup 2>/dev/null
             return;;
+        ("help")
+            __zerve:usage
+            return;;
         (*)
             if [[ -d $1 || -f $1 ]]; then
                 _ZRV_DOCROOT="$1"
             else
-                _ZRV_DOCROOT="$PWD"
+                __zerve:usage
             fi;;
     esac
-
-    print "Made it past with $@"
 
     zmodload zsh/datetime
     zmodload zsh/net/tcp
     zmodload zsh/stat
     zmodload zsh/system
 
-    _ZRV_PORT=8080
-    _ZRV_DOCROOT="$PWD"
+    : ${_ZRV_PORT:=8080}
+    : ${_ZRV_DOCROOT:="$PWD"}
+    : ${_ZRV_PROMPT:="(H:$_ZRV_PORT)-$PROMPT"}
+    : ${_ZRV_OLDPROMPT:="$PROMPT"}
 
-    setopt local_options nomultibyte
-
-    __http:listen || { print "No good"; return 1 }
+    __http:listen || { __zerve:cleanup; return 1 }
     _ZRV_LISTENFD=$REPLY
 
+    PROMPT="$_ZRV_PROMPT"
+
     zle -F $_ZRV_LISTENFD __zerve:handler
+}
+
+function __zerve:usage {
+    print "Usage: zerve [optional command] <file or dir>"
+    print "Available Commands: stop"
 }
 
 function __zerve:cleanup {
@@ -34,22 +42,25 @@ function __zerve:cleanup {
     zle -F $_ZRV_LISTENFD
     ztcp -c
 
-    unset _ZRV_PORT _ZRV_DOCROOT _ZRV_LISTENFD
+    PROMPT="$_ZRV_OLDPROMPT"
 
     zmodload -u zsh/datetime
     zmodload -u zsh/net/tcp
     zmodload -u zsh/stat
     zmodload -u zsh/system
 
-    unset _ZRV_PORT _ZRV_DOCROOT _ZRV_LISTENFD
+    unset _ZRV_PORT _ZRV_DOCROOT _ZRV_LISTENFD _ZRV_PROMPT _ZRV_OLDPROMPT
 }
 
 function __zerve:handler {
     local fd
 
+    setopt local_options nomultibyte
+
     __http:accept $1
     fd=$REPLY
 
+    trap '' PIPE
     while :; do
         unset req_headers; local -A req_headers
         if __http:parse_request && __http:check_request; then
@@ -68,15 +79,15 @@ function __zerve:srv {
 
     pathname="${_ZRV_DOCROOT}$(__url:decode $req_headers[url])"
     { if [[ -f $pathname ]]; then
-        __http:return_header "200 Ok" "Content-type: $(__util:mtype $pathname); charset=UTF-8" "Content-Length: $(stat -L +size $pathname)"
-        __http:send_raw $pathname
+        __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname); charset=UTF-8" "Content-Length: $(stat -L +size "$pathname")"
+        __http:send_raw "$pathname"
     elif [[ -d $pathname ]]; then
         if [[ -f $pathname/index.html ]]; then
-            __http:return_header "200 Ok" "Content-type: $(__util:mtype $pathname/index.html); charset=UTF-8" "Content-Length: $(stat -L +size $pathname/index.html)"
-            __http:send_raw $pathname/index.html
+            __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname/index.html); charset=UTF-8" "Content-Length: $(stat -L +size $pathname/index.html)"
+            __http:send_raw "$pathname/index.html"
         else
             __http:return_header "200 Ok" "Content-type: text/html; charset=UTF-8" "Transfer-Encoding: chunked"
-            { __util:dir_list $pathname | __util:html_template $pathname | __http:send_chunk  } || print "Oh no" >> log
+            __util:html_template "$pathname" $(__util:dir_list "$pathname") | __http:send_chunk
         fi
     else
         __http:error_header 404
@@ -95,14 +106,14 @@ function __http:accept {
 function __http:parse_request {
     local method url version line key value
 
-    read -t 15 -r -u $fd line || return 1
+    read -t 0 -r -u $fd line || return 1
     for method url version in ${(s. .)line%$'\r'}; do
         req_headers[method]="$method"
         req_headers[url]="${url%\?*}"
         req_headers[version]="$version"
     done
 
-    while read -t 15 -r -u $fd line; do
+    while read -t 0 -r -u $fd line; do
         [[ -n $line && $line != $'\r' ]] || break
         for key value in ${(s/: /)line%$'\r'}; do
             req_headers[${(L)key}]="$value"
@@ -132,6 +143,8 @@ function __http:error_header {
 }
 
 function __http:return_header {
+    local i
+
     print -n "HTTP/1.1 $1\r\n"
     print -n "Connection: ${req_headers[connection]:-keep-alive}\r\n"
     print -n "Date: $(export TZ=UTC && strftime "%a, %d %b %Y %H:%M:%S" $EPOCHSECONDS) GMT\r\n"
@@ -158,15 +171,17 @@ function __http:send_raw {
 
 function __http:send_chunk {
     while sysread buff; do
-        printf '%x\r\n' "$(print ${#buff})" || print "First print failed" >> log
-        printf '%s\r\n' "$buff" || print "Second print failed" >> log
+        printf '%x\r\n' "${#buff}"
+        printf '%s\r\n' "$buff"
     done
 
-    printf '%x\r\n' "0" || print "Third print failed" >> log
-    printf '\r\n' || print "Fourth print failed" >> log
+    printf '%x\r\n' "0"
+    printf '\r\n'
 }    
 
 function __url:encode {
+    local i
+
     for i in ${(s::)1}; do
         case "$i" in
             ([-._~A-Za-z0-9])
@@ -184,11 +199,17 @@ function __url:decode {
 }
 
 function __util:dir_list {
+    local i
+
     cd "$1" || return 1
 
-    for i in ./.*/(Nr) ./.*(.Nr) ./*/(Nr) ./*(.NR); do
-        __util:html_fragment $i
+    [[ "${1%/}" != "${_ZRV_DOCROOT%/}" ]] && __util:html_fragment '/../'
+
+    for i in ./.*/(Nr) ./.*(.Nr) ./*/(Nr) ./*(.Nr); do
+        __util:html_fragment "$i"
     done
+
+    cd - >/dev/null
 }
 
 function __util:calc_size {
@@ -207,52 +228,12 @@ function __util:calc_size {
 }
 
 function __util:html_fragment {
-    print "<tr><td><a href="${i#*/}">${i#*/}</a></td>"
-    print "<td>$(__util:calc_size $i)</td>"
-    print "<td>$(__util:mime_type $i)</td></tr>"
+    print "<tr><td><a href=\"${1#*/}\">${1#*/}</a></td><td>$(__util:calc_size $1)</td><td>$(__util:mime_type $1)</td></tr>"
 }
 
 function __util:html_template {
 <<EOF
-<!DOCTYPE html>
-<html>
-<head>
-<style type="text/css">
-a {text-decoration: none;}
-a:hover, a:focus { color: white; background: rgba(0,0,0,0.3); cursor: pointer; }
-h2 { margin-bottom: 10px }
-table { border-collapse: collapse; }
-thead th { padding-top: 4px; padding-bottom: 6px; text-align: left; }
-thead th:nth-child(2) { text-align: right; padding-right: 12px; }
-tbody td:nth-child(2) { text-align: right; padding-right: 12px; }
-tbody td:first-child { padding-right: 30px; }
-div.list { background-color: #F5F5F5; border-top: 1px solid black; border-bottom: 1px solid black; font: 90% monospace; margin: 4px;}
-div.footer { font: 90% monospace; color: grey; font-style: italic; padding-left: 4px; }
-</style>
-<title>czhttpd</title>
-</head>
-<body>
-<h2>Index of $1</h2>
-<div class=list>
-    <table>
-        <thead>
-        <tr>
-            <th>Name</th>
-            <th>Size</th>
-            <th>Type</th>
-        </tr>
-        </thead>
-        <tbody>
-EOF
-while sysread -o 1; do
-    continue
-done
-<<EOF
-        </tbody>
-    </table>
-</div>
-</body>
-</html>
+<!DOCTYPE html><html><head><style type="text/css">a {text-decoration: none;} a:hover, a:focus { color: white; background: rgba(0,0,0,0.3); cursor: pointer; } h2 { margin-bottom: 10px } table { border-collapse: collapse; } thead th { padding-top: 4px; padding-bottom: 6px; text-align: left; } thead th:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:first-child { padding-right: 30px; } div.list { background-color: #F5F5F5; border-top: 1px solid black; border-bottom: 1px solid black; font: 90% monospace; margin: 4px;}</style><title>czhttpd</title></head><body><h2>Index of $1</h2><div class=list><table><thead><tr><th>Name</th><th>Size</th><th>Type</th></tr></thead><tbody>$@[2,-1]</tbody></table></div></body></html>
 EOF
 }
 
@@ -268,6 +249,7 @@ function __util:mime_type {
             if which file >/dev/null; then
                 local mtype
                 mtype=$(file -bL --mime-type $1)
+
                 [[ ${mtype:h} == text ]] && { print "text/plain"; continue }
                 print "${mtype#application/x-executable}"
             else
