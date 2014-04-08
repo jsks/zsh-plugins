@@ -9,7 +9,7 @@ function zerve {
         (*)
             if [[ -d $1 || -f $1 ]]; then
                 _ZRV_DOCROOT="$1"
-            else
+            elif [[ -n $1 ]]; then
                 __zerve:usage
             fi;;
     esac
@@ -54,22 +54,17 @@ function __zerve:cleanup {
 
 function __zerve:handler {
     local fd
+    local -A req_headers
 
-    setopt local_options nomultibyte
+    setopt local_options nomultibyte nomonitor
 
     __http:accept $1
     fd=$REPLY
 
     trap '' PIPE
-    while :; do
-        unset req_headers; local -A req_headers
-        if __http:parse_request && __http:check_request; then
-            __zerve:srv 1>&$fd 2>/dev/null || break
-            [[ $req_headers[connection] == "close" ]] && break
-        else
-            break
-        fi
-    done
+    if __http:parse_request && __http:check_request; then
+        __zerve:srv 1>&$fd 2>/dev/null
+    fi
 
     ztcp -c $fd
 }
@@ -125,9 +120,6 @@ function __http:error_header {
     local message
 
     case "$1" in
-        (301)
-            message="301 Moved Permanently"
-            add_headers+="Location: $2";;
         (404)
             message="404 Not Found";;
         (500)
@@ -138,7 +130,7 @@ function __http:error_header {
             message="505 HTTP Version Not Supported";;
     esac
 
-    __http:return_header "$message" "Content-type: text/plain; charset=UTF-8" "Content-Length: ${#message}" $add_headers[@]
+    __http:return_header "$message" "Content-type: text/plain; charset=UTF-8" "Content-Length: ${#message}"
     print "$message"
 }
 
@@ -146,7 +138,7 @@ function __http:return_header {
     local i
 
     print -n "HTTP/1.1 $1\r\n"
-    print -n "Connection: ${req_headers[connection]:-keep-alive}\r\n"
+    print -n "Connection: close\r\n"
     print -n "Date: $(export TZ=UTC && strftime "%a, %d %b %Y %H:%M:%S" $EPOCHSECONDS) GMT\r\n"
     print -n "Server: czhttpd\r\n"
     for i in "$@[2,-1]"; do
@@ -178,21 +170,6 @@ function __http:send_chunk {
     printf '%x\r\n' "0"
     printf '\r\n'
 }    
-
-function __url:encode {
-    local i
-
-    for i in ${(s::)1}; do
-        case "$i" in
-            ([-._~A-Za-z0-9])
-                printf '%s' "$i";;
-            (*)
-                printf '%%%02x' "'$i";;
-        esac
-    done
-
-    printf '\n'
-}
 
 function __url:decode {
     printf '%b\n' "${1:gs/%/\\x}"
