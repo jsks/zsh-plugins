@@ -101,14 +101,14 @@ function __http:accept {
 function __http:parse_request {
     local method url version line key value
 
-    read -t 15 -r -u $fd line || return 1
+    read -t 5 -r -u $fd line || return 1
     for method url version in ${(s. .)line%$'\r'}; do
         req_headers[method]="$method"
         req_headers[url]="${url%\?*}"
         req_headers[version]="$version"
     done
 
-    while read -t 15 -r -u $fd line; do
+    while read -t 5 -r -u $fd line; do
         [[ -n $line && $line != $'\r' ]] || break
         for key value in ${(s/: /)line%$'\r'}; do
             req_headers[${(L)key}]="$value"
