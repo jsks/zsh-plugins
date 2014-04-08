@@ -11,6 +11,7 @@ function zerve {
                 _ZRV_DOCROOT="$1"
             elif [[ -n $1 ]]; then
                 __zerve:usage
+                return
             fi;;
     esac
 
@@ -182,7 +183,7 @@ function __util:dir_list {
 
     [[ "${1%/}" != "${_ZRV_DOCROOT%/}" ]] && __util:html_fragment '/../'
 
-    for i in ./.*/(Nr) ./.*(.Nr) ./*/(Nr) ./*(.Nr); do
+    for i in ./.*/(Nr) ./*/(Nr) ./.*(.Nr) ./*(.Nr); do
         __util:html_fragment "$i"
     done
 
@@ -205,18 +206,16 @@ function __util:calc_size {
 }
 
 function __util:html_fragment {
-    print "<tr><td><a href=\"${1#*/}\">${1#*/}</a></td><td>$(__util:calc_size $1)</td><td>$(__util:mime_type $1)</td></tr>"
+    print "<tr><td><a href=\"${1#*/}\">${1#*/}</a></td><td>$(__util:calc_size $1)</td></tr>"
 }
 
 function __util:html_template {
 <<EOF
-<!DOCTYPE html><html><head><style type="text/css">a {text-decoration: none;} a:hover, a:focus { color: white; background: rgba(0,0,0,0.3); cursor: pointer; } h2 { margin-bottom: 10px } table { border-collapse: collapse; } thead th { padding-top: 4px; padding-bottom: 6px; text-align: left; } thead th:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:first-child { padding-right: 30px; } div.list { background-color: #F5F5F5; border-top: 1px solid black; border-bottom: 1px solid black; font: 90% monospace; margin: 4px;}</style><title>czhttpd</title></head><body><h2>Index of $1</h2><div class=list><table><thead><tr><th>Name</th><th>Size</th><th>Type</th></tr></thead><tbody>$@[2,-1]</tbody></table></div></body></html>
+<!DOCTYPE html><html><head><style type="text/css">a {text-decoration: none;} a:hover, a:focus { color: white; background: rgba(0,0,0,0.3); cursor: pointer; } h2 { margin-bottom: 10px } table { border-collapse: collapse; } thead th { padding-top: 4px; padding-bottom: 6px; text-align: left; } thead th:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:first-child { padding-right: 30px; } div.list { background-color: #F5F5F5; border-top: 1px solid black; border-bottom: 1px solid black; font: 90% monospace; margin: 4px;}</style><title>czhttpd</title></head><body><h2>Index of $1</h2><div class=list><table><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>$@[2,-1]</tbody></table></div></body></html>
 EOF
 }
 
 function __util:mime_type {
-    [[ -d "$1" ]] && { print "Dir"; return }
-
     case $1 in
         (*.html)
             print "text/html";;
