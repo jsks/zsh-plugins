@@ -15,10 +15,13 @@ function zerve {
             fi;;
     esac
 
+    if ! whence zstat >/dev/null; then
+        zmodload -F zsh/stat +b:zstat
+    fi
+
     zmodload zsh/datetime
     zmodload zsh/net/tcp
-    zmodload zsh/stat
-    zmodload zsh/system
+    zmodload -F zsh/system +b:sysread -b:syswrite -b:syserror -b:zsystem
 
     : ${_ZRV_PORT:=8080}
     : ${_ZRV_DOCROOT:="$PWD"}
@@ -47,10 +50,9 @@ function __zerve:cleanup {
 
     zmodload -u zsh/datetime
     zmodload -u zsh/net/tcp
-    zmodload -u zsh/stat
     zmodload -u zsh/system
 
-    unset _ZRV_PORT _ZRV_DOCROOT _ZRV_LISTENFD _ZRV_PROMPT _ZRV_OLDPROMPT
+    unset _ZRV_DOCROOT _ZRV_LISTENFD _ZRV_OLDPROMPT
 }
 
 function __zerve:handler {
@@ -75,11 +77,11 @@ function __zerve:srv {
 
     pathname="${_ZRV_DOCROOT}$(__url:decode $req_headers[url])"
     { if [[ -f $pathname ]]; then
-        __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname); charset=UTF-8" "Content-Length: $(stat -L +size "$pathname")"
+        __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname); charset=UTF-8" "Content-Length: $(zstat -L +size "$pathname")"
         __http:send_raw "$pathname"
     elif [[ -d $pathname ]]; then
         if [[ -f $pathname/index.html ]]; then
-            __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname/index.html); charset=UTF-8" "Content-Length: $(stat -L +size $pathname/index.html)"
+            __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname/index.html); charset=UTF-8" "Content-Length: $(zstat -L +size $pathname/index.html)"
             __http:send_raw "$pathname/index.html"
         else
             __http:return_header "200 Ok" "Content-type: text/html; charset=UTF-8" "Transfer-Encoding: chunked"
@@ -197,7 +199,7 @@ function __util:calc_size {
     local MB=1048576.0
     local GB=1073741824.0
     
-    local size=$(stat -L +size $1)
+    local size=$(zstat -L +size $1)
 
     (( $size < $KB )) && { printf '%.1f%s\n' "${size}" "B" && return }
     (( $size < $MB )) && { printf '%.1f%s\n' "$((size/$KB))" "K" && return }
