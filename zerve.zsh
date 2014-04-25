@@ -75,7 +75,7 @@ function __zerve:handler {
 function __zerve:srv {
     local pathname
 
-    pathname="${_ZRV_DOCROOT}$(__url:decode $req_headers[url])"
+    pathname="${_ZRV_DOCROOT}${$(__url:decode $req_headers[url])%/}"
     { if [[ -f $pathname ]]; then
         __http:return_header "200 Ok" "Content-type: $(__util:mime_type $pathname); charset=UTF-8" "Content-Length: $(zstat -L +size "$pathname")"
         __http:send_raw "$pathname"
