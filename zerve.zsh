@@ -143,7 +143,7 @@ function __http:return_header {
     print -n "HTTP/1.1 $1\r\n"
     print -n "Connection: close\r\n"
     print -n "Date: $(export TZ=UTC && strftime "%a, %d %b %Y %H:%M:%S" $EPOCHSECONDS) GMT\r\n"
-    print -n "Server: czhttpd\r\n"
+    print -n "Server: zerve\r\n"
     for i in "$@[2,-1]"; do
         print -n "$i\r\n"
     done
@@ -213,7 +213,7 @@ function __util:html_fragment {
 
 function __util:html_template {
 <<EOF
-<!DOCTYPE html><html><head><style type="text/css">a {text-decoration: none;} a:hover, a:focus { color: white; background: rgba(0,0,0,0.3); cursor: pointer; } h2 { margin-bottom: 10px } table { border-collapse: collapse; } thead th { padding-top: 4px; padding-bottom: 6px; text-align: left; } thead th:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:first-child { padding-right: 30px; } div.list { background-color: #F5F5F5; border-top: 1px solid black; border-bottom: 1px solid black; font: 90% monospace; margin: 4px;}</style><title>czhttpd</title></head><body><h2>Index of $1</h2><div class=list><table><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>$@[2,-1]</tbody></table></div></body></html>
+<!DOCTYPE html><html><head><style type="text/css">a {text-decoration: none;} a:hover, a:focus { color: white; background: rgba(0,0,0,0.3); cursor: pointer; } h2 { margin-bottom: 10px } table { border-collapse: collapse; } thead th { padding-top: 4px; padding-bottom: 6px; text-align: left; } thead th:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:nth-child(2) { text-align: right; padding-right: 12px; } tbody td:first-child { padding-right: 30px; } div.list { background-color: #F5F5F5; border-top: 1px solid black; border-bottom: 1px solid black; font: 90% monospace; margin: 4px;}</style><title>zerve</title></head><body><h2>Index of $1</h2><div class=list><table><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>$@[2,-1]</tbody></table></div></body></html>
 EOF
 }
 
