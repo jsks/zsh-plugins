@@ -1,3 +1,8 @@
+# zerve: zsh httpd plugin
+# Author: jsks
+# Site: http://github.com/jsks/zerve
+###
+
 function zerve {
     case $1 in
         ("stop")
