@@ -1,4 +1,5 @@
-# zerve: zsh httpd plugin
+# Name: zerve
+# Description: zsh httpd plugin
 # Author: jsks
 # Site: http://github.com/jsks/zerve
 ###
@@ -20,13 +21,7 @@ function zerve {
             fi;;
     esac
 
-    if ! whence zstat >/dev/null; then
-        zmodload -F zsh/stat +b:zstat
-    fi
-
-    zmodload zsh/datetime
-    zmodload zsh/net/tcp
-    zmodload -F zsh/system +b:sysread -b:syswrite -b:syserror -b:zsystem
+    __zerve:zmod || { print "Error loading modules"; return 1 }
 
     : ${_ZRV_PORT:=8080}
     : ${_ZRV_DOCROOT:="$PWD"}
@@ -46,6 +41,23 @@ function __zerve:usage {
     print "Available Commands: stop"
 }
 
+function __zerve:zmod {
+    typeset -ga _ZRV_LOADED_MODULES
+    local i
+
+    for i in "zsh/stat" "zsh/datetime" "zsh/net/tcp" "zsh/system"; do
+        if ! zmodload -e $i; then
+            if [[ $i == "zsh/stat" ]]; then
+                zmodload -F zsh/stat +b:zstat || return 1
+            else
+                zmodload $i || return 1
+            fi
+
+            _ZRV_LOADED_MODULES+="$i"
+        fi
+    done
+}
+
 function __zerve:cleanup {
     print "Closing zerve..."
     zle -F $_ZRV_LISTENFD
@@ -53,11 +65,8 @@ function __zerve:cleanup {
 
     PROMPT="$_ZRV_OLDPROMPT"
 
-    zmodload -u zsh/datetime
-    zmodload -u zsh/net/tcp
-    zmodload -u zsh/system
-
-    unset _ZRV_DOCROOT _ZRV_LISTENFD _ZRV_OLDPROMPT
+    for i in $_ZRV_LOADED_MODULES; zmodload -u $i
+    unset _ZRV_DOCROOT _ZRV_LISTENFD _ZRV_OLDPROMPT _ZRV_LOADED_MODULES
 }
 
 function __zerve:handler {
