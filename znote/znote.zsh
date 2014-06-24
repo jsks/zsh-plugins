@@ -74,7 +74,7 @@ function __util:md {
             continue
         fi
 
-        if [[ -f "$_ZN_MD_DIR/$i.html" && "$_ZN_MD_DIR/$i.html" -ot "$i" ]]; then
+        if [[ ! -f "$_ZN_MD_DIR/$i.html" || "$_ZN_MD_DIR/$i.html" -ot "$i" ]]; then
             $_ZN_MD "$i" > "$_ZN_MD_DIR/$i.html"
         fi
 
