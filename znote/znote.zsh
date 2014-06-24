@@ -8,7 +8,7 @@
 ## Wrapper function
 function __znote {
     [[ -z $_ZN_EARGS ]] && _ZN_EARGS=('+set autowriteall' '+set ft=markdown')
-    : ${_ZN_DIR:=~/notes}
+    : ${_ZN_DIR:=$HOME/notes}
     : ${_ZN_MD:=markdown}
     : ${_ZN_MD_DIR:=.html}
     : ${_ZN_HTML2TXT:=html2text}
@@ -177,7 +177,7 @@ function __z:search {
 }
 
 ## File/dir completion
-compdef "_path_files -W ${_ZN_DIR:=~/notes}" __znote
+compdef "_path_files -W ${_ZN_DIR:-$HOME/notes}" __znote
 
 ## Happy aliases are happy
 alias zn="__znote add $*"
