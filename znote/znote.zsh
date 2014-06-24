@@ -55,7 +55,7 @@ function __znote {
 
 ## Utility functions
 function __util:check {
-    if ! whence $1 >/dev/null; then
+    if ! whence ${1[(ws. .)1]} >/dev/null; then
         print "Could not find $1...aborting"
         return 1
     fi
@@ -75,7 +75,7 @@ function __util:md {
         fi
 
         if [[ ! -f "$_ZN_MD_DIR/$i.html" || "$_ZN_MD_DIR/$i.html" -ot "$i" ]]; then
-            $_ZN_MD "$i" > "$_ZN_MD_DIR/$i.html"
+            ${(z)_ZN_MD} "$i" > "$_ZN_MD_DIR/$i.html"
         fi
 
         INDEX+="<li><a href="$i.html">${i:t}</a></li>"
@@ -100,9 +100,9 @@ function __z:cat {
     [[ -z $f ]] && return
 
     if [[ -f "$_ZN_MD_DIR/$f.html" && "$_ZN_MD_DIR/$f.html" -nt $f ]]; then
-        $_ZN_HTML2TXT "$_ZN_MD_DIR/$f.html"
+        ${(z)_ZN_HTML2TXT} "$_ZN_MD_DIR/$f.html"
     else
-        $_ZN_MD "$f" > "$_ZN_MD_DIR/$f.html" | $_ZN_HTML2TXT
+        ${(z)_ZN_MD} "$f" > "$_ZN_MD_DIR/$f.html" | ${(z)_ZN_HTML2TXT}
     fi
 }
 
@@ -114,7 +114,7 @@ function __z:compile {
             [[ -z $f ]] && continue
 
             mkdir -p $_ZN_MD_DIR/${f:h} &>/dev/null
-            $_ZN_MD "$f" > "$_ZN_MD_DIR/$f.html"
+            ${(z)_ZN_MD} "$f" > "$_ZN_MD_DIR/$f.html"
         done
 
         return
