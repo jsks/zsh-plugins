@@ -177,7 +177,7 @@ function __z:search {
 }
 
 ## File/dir completion
-compdef "_path_files -W $_ZN_DIR" __znote
+compdef "_path_files -W ${_ZN_DIR:=~/notes}" __znote
 
 ## Happy aliases are happy
 alias zn="__znote add $*"
