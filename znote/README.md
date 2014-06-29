@@ -42,6 +42,7 @@ zd  :   view git log of note
 zmz :   move note(s) to folder in $_ZN_DIR (same arg order as mv)
 zs  :   search notes using grep
 zc  :   compile given notes, or if none specified all notes, from md to html
+zu  :   restore a deleted note
 zo  :   convert (md->html->txt) and print note to stdout; if an up-to-date html
         version exists, use that as a cache file
 ```

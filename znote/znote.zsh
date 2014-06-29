@@ -13,7 +13,7 @@ function __znote {
     : ${_ZN_MD_DIR:=.html}
     : ${_ZN_HTML2TXT:=html2text}
 
-    for i in "tree" "fzf" $_ZN_MD $_ZN_HTML2TXT; do
+    for i in "tree" "fzf" ${_ZN_MD[(ws. .)1]} ${_ZN_HTML2TXT[(ws. .)1]}; do
         __util:check $i || return 1
     done
 
@@ -46,6 +46,8 @@ function __znote {
             __z:diff ${@[2,-1]};;
         ("mv")
             __z:mv ${@[2,-1]};;
+        ("restore")
+            __z:restore ${@[2,-1]};;
         (*)
             __z:help;;
     esac
@@ -55,7 +57,7 @@ function __znote {
 
 ## Utility functions
 function __util:check {
-    if ! whence ${1[(ws. .)1]} >/dev/null; then
+    if ! whence $1 >/dev/null; then
         print "Could not find $1...aborting"
         return 1
     fi
@@ -138,9 +140,10 @@ zn  :   add/edit a note
 zrm :   delete a note/folder
 zl  :   list all notes
 zd  :   view git log of note
-zmz :   move note(s) to folder in $_ZN_DIR (same arg order as mv)
+zmz :   move note(s) within $_ZN_DIR (same arg order as mv)
 zs  :   search notes using grep
 zc  :   compile given/all notes from markdown to html
+zu  :   restore a deleted note
 zo  :   convert (md->html->txt) & print note to stdout; if an up-to-date html 
         version exists, use that as a cache file
 EOF
@@ -162,6 +165,18 @@ function __z:mv {
         git mv "$f" ${@[-1]}/
         git commit -m "moved -> '$f'"
     done
+}
+
+function __z:restore {
+    local commit
+
+    commit=$(git rev-list -n 1 HEAD -- "$*")
+    [[ -z $commit ]] && { print "Deleted file not found"; return }
+
+    git checkout "$commit^" -- "$*"
+
+    git add "$*"
+    git commit -m "restored -> '$*'"
 }
 
 function __z:rm {
@@ -188,4 +203,5 @@ alias zd="__znote diff $*"
 alias zmz="__znote mv $*"
 alias zs="__znote search $*"
 alias zc="__znote compile $*"
+alias zu="__znote restore $*"
 alias zh="__znote help"
