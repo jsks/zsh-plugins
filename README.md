@@ -3,10 +3,11 @@ zsh-plugins
 
 Small collection of zsh plugins. Install by sourcing each script from your zsh config files.
 
-| Plugins | Description      | Documentation               |
-|---------|------------------|-----------------------------|
-| zerve   | httpd plugin     | [readme](./zerve/README.md) |
-| znote   | cli note manager | [readme](./znote/README.md) |
+| Plugin  | Description      |
+|---------|------------------|
+| zbk     | bookmark manager |
+| zerve   | httpd plugin     |
+| znote   | cli note manager |
 
 
 ### Contributing
