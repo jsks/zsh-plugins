@@ -3,12 +3,12 @@ zbk
 bookmark manager
 
 -----
-*zbk* provides a simple way to handle dir/file bookmarks in `zsh` using named directories. What makes *zbk* special? Absolutely nothing :), there's loads of bookmark scripts, but this is simply what I use.
+*zbk* provides a simple way to handle dir/file bookmarks in `zsh` using named directories. What makes *zbk* special? Absolutely nothing :), there's loads of bookmark scripts, this is simply what I use.
 
-## Dependencies:
+### Dependencies
 - `sed`
 
-## Installation
+### Installation
 You know the drill
 
 ```
@@ -16,7 +16,7 @@ $ print ". /path/to/zbk.zsh" >> $ZDOTDIR/.zshrc
 $ . $ZDOTDIR/.zshrc
 ```
 
-## Configuration
+### Configuration
 There are 3 global vars:
 - `_ZBK_FILE`: file that preserves our named directories to rebuild our hash
 - `_ZBK_COLOR_VAR`: color for bookmarks

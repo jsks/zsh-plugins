@@ -1,5 +1,5 @@
 # Initialize our plugin
-if ! whence colors; then
+if ! whence colors >/dev/null; then
     autoload -U colors && colors
 else
     [[ -z $fg ]] && colors
@@ -55,7 +55,7 @@ function __util:hl {
 }
 
 function __zbk:add {
-    hash -d -m "${(q)1}" && { print "\'$1\' already set"; return }
+    [[ -n $(hash -d -m "${(q)1}") ]] && { print "\'$1\' already set"; return }
 
     if [[ -d "$@[2,-1]" || -f "$@[2,-1]" ]]; then
         print "hash -d $1=\"$@[2,-1]:A\"" >> $_ZBK_FILE
@@ -84,14 +84,21 @@ Note: If no command is given, zbk defaults to 'add'
 EOF
 }
 
+# Use our file cache rather than `hash -d` so that we filter
+# only the named dirs we've explicitly defined
 function __zbk:list {
     local line
 
-    for line in $(<hash -d -m); do
-        if [[ $1 != "ll" ]]; then
-            __util:hl ${line%=*}
-        else
-            __util:hl $line
-        fi
+    for line in $(<$_ZBK_FILE); do
+        case $line in
+            ("hash"|"-d")
+                continue;;
+            (*)
+                if [[ $1 != "ll" ]]; then
+                    __util:hl ${line[(ws. .)3,-1]%=*}
+                else
+                   __util:hl ${line[(ws. .)3,-1]}
+                fi;;
+        esac
     done
 }
