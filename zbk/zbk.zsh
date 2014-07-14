@@ -5,18 +5,13 @@ else
     [[ -z $fg ]] && colors
 fi
 
-: ${_ZBK_FILE:=$ZDOTDIR/bookmarks}
-: ${_ZBK_COLOR_VAR:="$fg_bold[blue]"}
-: ${_ZBK_COLOR_VAL:="$fg[yellow]"}
-
-
-if [[ ! -f $_ZBK_FILE ]]; then
-    touch $_ZBK_FILE
-else
-    . $_ZBK_FILE
-fi
+[[ -f ${_ZBK_FILE:=$ZDOTDIR/bookmarks} ]] && . $_ZBK_FILE
 
 function zbk {
+    : ${_ZBK_FILE:=$ZDOTDIR/bookmarks}
+    : ${_ZBK_COLOR_VAR:="$fg_bold[blue]"}
+    : ${_ZBK_COLOR_VAL:="$fg[yellow]"}
+
     case ${(L)1} in
         ("d"|"delete")
             __zbk:delete $2;;
@@ -95,9 +90,9 @@ function __zbk:list {
                 continue;;
             (*)
                 if [[ $1 != "ll" ]]; then
-                    __util:hl ${line[(ws. .)3,-1]%=*}
+                    __util:hl ${line%=*}
                 else
-                   __util:hl ${line[(ws. .)3,-1]}
+                   __util:hl $line
                 fi;;
         esac
     done
