@@ -55,8 +55,11 @@ function __zbk:add {
     if [[ -d "$@[2,-1]" || -f "$@[2,-1]" ]]; then
         print "hash -d $1=\"$@[2,-1]:A\"" >> $_ZBK_FILE
         hash -d $1="$@[2,-1]:A"
-    else
+    elif [[ -z $1 || -n $2 ]]; then
         print "Invalid directory" >&2
+    else
+        print "hash -d $1=\"$PWD\"" >> $_ZBK_FILE
+        hash -d $1="$PWD"
     fi
 }
 
