@@ -156,13 +156,11 @@ function __z:list {
 function __z:mv {
     local i
 
-    [[ ! -d ${@[-1]} ]] && mkdir ${@[-1]} &>/dev/null
-
     for i in ${@[1,-2]}; do
         local f="$(fzf -1 -0 -q $i)"
         [[ -z $f ]] && continue
 
-        git mv "$f" ${@[-1]}/
+        git mv "$f" ${@[-1]}
         git commit -m "moved -> '$f'"
     done
 }
@@ -183,7 +181,7 @@ function __z:rm {
     local f="$(fzf -1 -0 -q "$*")"
     [[ -z $f ]] && return
 
-    git rm "$f" >/dev/null
+    git rm -r "$f" >/dev/null
     git commit -m "deleted -> '$f'"
 }
 
